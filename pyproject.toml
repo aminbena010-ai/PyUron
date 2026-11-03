@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyuron"
+version = "0.3.0"
+description = "A modular Python-first 2D and 3D game engine."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pygame-ce>=2.5.0",
+    "PyOpenGL>=3.1.7",
+    "numpy>=1.26",
+    "pyrr>=0.10.3",
+]
+
+[project.optional-dependencies]
+editor = ["PySide6>=6.7"]
+dev    = ["pytest>=8.0", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+include = ["pyuron*"]
+
+[tool.pytest.ini_options]
+addopts = "-q --no-header"
+testpaths = ["tests"]
