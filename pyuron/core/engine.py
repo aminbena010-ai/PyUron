@@ -11,6 +11,8 @@ from pyuron.scene.scene import Scene
 
 
 class Engine:
+    MAX_FIXED_STEPS = 8
+
     def __init__(self, config: EngineConfig | None = None) -> None:
         self.config = config or EngineConfig()
         self.window: Window | None = None
@@ -35,7 +37,6 @@ class Engine:
         # Fixed Timestep
         self.fixed_dt = self.config.fixed_dt
         self._accumulator = 0.0
-        self.MAX_FIXED_STEPS = 8
 
     # ── API pública ─────────────────────────────────────────────────
     def set_scene(self, scene: Scene) -> None:
