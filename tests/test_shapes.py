@@ -1,7 +1,7 @@
 import math
 import pytest
 
-from pyuron.math import AABB, Vector3
+from pyuron.math import Vector3
 from pyuron.physics.shapes import BoxShape, SphereShape
 
 

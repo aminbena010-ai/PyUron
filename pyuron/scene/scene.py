@@ -1,8 +1,6 @@
 """Escena: renderiza el árbol y avanza la física."""
 from __future__ import annotations
 
-import numpy as np
-
 from pyuron.physics.world import PhysicsWorld
 from pyuron.scene.camera_node import _BaseCameraNode
 from pyuron.scene.fps_camera import FPSCameraNode

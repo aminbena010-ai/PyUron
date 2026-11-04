@@ -16,7 +16,7 @@ LOGO = r"""
 """
 
 
-def show_banner(version: str = "0.1.1") -> None:
+def show_banner(version: str = "1.0.0") -> None:
     print(c(MAGENTA, LOGO), flush=True)
     print(
         c(CYAN, "  ◆ ") + c(BOLD, f"PyUron {version}") + c(GRAY, "  ·  Core Engine"),

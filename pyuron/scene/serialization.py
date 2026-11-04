@@ -17,13 +17,12 @@ def register_node_type(cls: type) -> type:
 
 # ── Serialización por tipo ───────────────────────────────────────
 def _node_to_dict(node) -> dict:
-    from pyuron.math import Vector3
-    from pyuron.scene.physics_body import PhysicsBody3D, SphereBody3D
+    from pyuron.scene.physics_body import PhysicsBody3D
     from pyuron.scene.sprite2d import Sprite2D
     from pyuron.scene.animated_sprite2d import AnimatedSprite2D
     from pyuron.scene.label_node import LabelNode
     from pyuron.scene.light_node import DirectionalLightNode, PointLightNode
-    from pyuron.physics.shapes import BoxShape, SphereShape
+    from pyuron.physics.shapes import SphereShape
 
     d: dict = {
         "type": node.__class__.__name__,
@@ -191,7 +190,7 @@ def _dict_to_node(d: dict, scene_context: dict):
 # ── API pública ─────────────────────────────────────────────────
 def scene_to_dict(scene) -> dict:
     return {
-        "version": "0.9.0",
+        "version": "1.0.0",
         "scene": _node_to_dict(scene),
     }
 

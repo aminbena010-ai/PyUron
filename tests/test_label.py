@@ -1,5 +1,3 @@
-import pytest
-
 from pyuron.scene.label_node import render_text_surface, surface_to_array
 
 
