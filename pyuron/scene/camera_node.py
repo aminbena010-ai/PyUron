@@ -15,16 +15,6 @@ class _BaseCameraNode(Node3D):
     def view_projection(self, aspect: float) -> np.ndarray:
         raise NotImplementedError
 
-    def world_position(self) -> Vector3:
-        """Suma las posiciones de todos los Node3D ancestros."""
-        pos = Vector3(0, 0, 0)
-        node = self
-        while node is not None:
-            if isinstance(node, Node3D):
-                pos = pos + node.transform.position
-            node = node.parent
-        return pos
-
 
 class Camera2DNode(_BaseCameraNode):
     """Cámara ortográfica. `size_y` = unidades de mundo visibles verticalmente."""

@@ -11,18 +11,10 @@ from pyuron.scene.sprite2d import Anchor, Sprite2D
 from pyuron.scene.animated_sprite2d import AnimatedSprite2D
 from pyuron.scene.label_node import LabelNode
 
-from pyuron.scene.serialization import register_node_type
-
-# Registrar todos los tipos
-for _cls in [
-    Node, Node2D, Node3D, Scene,
-    MeshInstance2D, MeshInstance3D,
-    Camera2DNode, Camera3DNode, FPSCameraNode,
-    DirectionalLightNode, PointLightNode,
-    PhysicsBody3D, SphereBody3D,
-    Sprite2D, AnimatedSprite2D, LabelNode,
-]:
-    register_node_type(_cls)
+from pyuron.scene.serialization import (
+    ensure_default_node_types,
+    register_node_type,
+)
 
 __all__ = [
     "Node", "Node2D", "Node3D", "Scene",

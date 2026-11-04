@@ -115,25 +115,17 @@ class PhysicsWorld:
             return
 
         if dist < 1e-8:
-            # Centro dentro de la caja: empujar por el eje de menor penetración
-            bc = aabb.center()
-            ov = aabb.overlap(sphere.get_aabb())
-            if ov is None:
-                return
-            if ov.x <= ov.y and ov.x <= ov.z:
-                axis, depth = 0, ov.x + sr
-            elif ov.y <= ov.z:
-                axis, depth = 1, ov.y + sr
-            else:
-                axis, depth = 2, ov.z + sr
-            sign = 1.0 if sc.x >= bc.x else -1.0 if axis == 0 else (
-                1.0 if sc.y >= bc.y else -1.0 if axis == 1 else (
-                    1.0 if sc.z >= bc.z else -1.0))
-            normal = Vector3(
-                sign if axis == 0 else 0.0,
-                sign if axis == 1 else 0.0,
-                sign if axis == 2 else 0.0,
+            # Centro dentro de la caja: salir por la cara más cercana.
+            # Profundidad = distancia del centro a esa cara + radio.
+            candidates = (
+                (Vector3(1.0, 0.0, 0.0), (aabb.max.x - sc.x) + sr),
+                (Vector3(-1.0, 0.0, 0.0), (sc.x - aabb.min.x) + sr),
+                (Vector3(0.0, 1.0, 0.0), (aabb.max.y - sc.y) + sr),
+                (Vector3(0.0, -1.0, 0.0), (sc.y - aabb.min.y) + sr),
+                (Vector3(0.0, 0.0, 1.0), (aabb.max.z - sc.z) + sr),
+                (Vector3(0.0, 0.0, -1.0), (sc.z - aabb.min.z) + sr),
             )
+            normal, depth = min(candidates, key=lambda item: item[1])
             self._apply_push_and_bounce(box, sphere, normal, depth)
             return
 

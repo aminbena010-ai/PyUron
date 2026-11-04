@@ -11,6 +11,9 @@ from pyuron.scene.scene import Scene
 
 
 class Engine:
+    # Límite de pasos fijos por frame para evitar la "espiral de la muerte".
+    MAX_FIXED_STEPS = 8
+
     def __init__(self, config: EngineConfig | None = None) -> None:
         self.config = config or EngineConfig()
         self.window: Window | None = None
@@ -21,6 +24,9 @@ class Engine:
         self.is_running = False
         self.delta_time = 0.0
         self._clock = pygame.time.Clock()
+        self._accumulator = 0.0
+        self._pygame_started = False
+        self._closed = False
 
         self._on_update: list = []
         self._on_render: list = []
@@ -45,26 +51,33 @@ class Engine:
         if self.window is not None:
             return
 
+        self._closed = False
+        self._pygame_started = True
+
         startup = Timer()
         Log.header("Arranque de PyUron")
 
-        with timed("Inicialización ventana"):
-            self.window = Window(
-                title=self.config.title,
-                width=self.config.width,
-                height=self.config.height,
-                resizable=self.config.resizable,
-                vsync=self.config.vsync,
-                gl_major=self.config.gl_major,
-                gl_minor=self.config.gl_minor,
-            )
-        Log.ok(f"Ventana creada ({self.config.width}×{self.config.height})")
+        try:
+            with timed("Inicialización ventana"):
+                self.window = Window(
+                    title=self.config.title,
+                    width=self.config.width,
+                    height=self.config.height,
+                    resizable=self.config.resizable,
+                    vsync=self.config.vsync,
+                    gl_major=self.config.gl_major,
+                    gl_minor=self.config.gl_minor,
+                )
+            Log.ok(f"Ventana creada ({self.config.width}×{self.config.height})")
 
-        with timed("Inicialización renderer / contexto GL"):
-            self.renderer = Renderer(
-                self.config.width, self.config.height, self.config.clear_color,
-            )
-        Log.ok(f"OpenGL {self.renderer.version}")
+            with timed("Inicialización renderer / contexto GL"):
+                self.renderer = Renderer(
+                    self.config.width, self.config.height, self.config.clear_color,
+                )
+            Log.ok(f"OpenGL {self.renderer.version}")
+        except BaseException:
+            self.shutdown()
+            raise
 
         with timed("Inicialización audio"):
             self.audio.init()
@@ -72,35 +85,65 @@ class Engine:
         Log.time("Arranque total", startup.elapsed_ms)
         Log.divider()
 
+    def _compute_steps(self, frame_dt: float) -> list[float]:
+        """Divide el frame en pasos de simulación.
+
+        Sin `fixed_dt` devuelve `[frame_dt]` (comportamiento 1.0.0). Con
+        `fixed_dt` acumula y devuelve pasos constantes, limitando el número
+        de pasos por frame y descartando el excedente si se supera el límite.
+        """
+        fixed = self.config.fixed_dt
+        if fixed is None:
+            return [frame_dt]
+
+        self._accumulator += max(0.0, frame_dt)
+        steps: list[float] = []
+        while self._accumulator >= fixed and len(steps) < self.MAX_FIXED_STEPS:
+            steps.append(fixed)
+            self._accumulator -= fixed
+        if len(steps) >= self.MAX_FIXED_STEPS:
+            self._accumulator = 0.0
+        return steps
+
+    def _update(self, dt: float) -> None:
+        """Actualización lógica de un paso. No requiere ventana ni GL."""
+        for fn in self._on_update:
+            fn(dt)
+        if self.scene is not None:
+            self.scene._process(dt)
+
+    def _render_frame(self) -> None:
+        if self.renderer is None or self.window is None:
+            raise RuntimeError(
+                "El motor no está inicializado: falta ventana o renderer."
+            )
+
+        self.renderer.begin_frame()
+        for fn in self._on_render:
+            fn()
+        if self.scene is not None:
+            t = Timer()
+            self.scene.render(self.renderer)
+            self._draw_ms_accum += t.elapsed_ms
+        self.renderer.end_frame()
+        self.window.swap_buffers()
+
     def run(self) -> None:
         self.initialize()
         self.is_running = True
 
         try:
             while self.is_running:
-                self.delta_time = self._clock.tick() / 1000.0
+                frame_dt = self._clock.tick() / 1000.0
+                self.delta_time = frame_dt
                 self._process_events()
                 if not self.is_running:
                     break
 
-                for fn in self._on_update:
-                    fn(self.delta_time)
-                if self.scene is not None:
-                    self.scene._process(self.delta_time)
+                for dt in self._compute_steps(frame_dt):
+                    self._update(dt)
 
-                assert self.renderer is not None and self.window is not None
-                self.renderer.begin_frame()
-
-                for fn in self._on_render:
-                    fn()
-
-                if self.scene is not None:
-                    t = Timer()
-                    self.scene.render(self.renderer)
-                    self._draw_ms_accum += t.elapsed_ms
-
-                self.renderer.end_frame()
-                self.window.swap_buffers()
+                self._render_frame()
                 self._report_fps()
         except KeyboardInterrupt:
             self.stop()
@@ -144,11 +187,26 @@ class Engine:
         self.is_running = False
 
     def shutdown(self) -> None:
+        """Libera los recursos propios del motor. Es idempotente."""
+        if self._closed:
+            return
+        self._closed = True
         self.is_running = False
+
         self.audio.shutdown()
+
+        if self.renderer is not None:
+            from pyuron.graphics.sprite_quad import dispose_sprite_quad
+
+            dispose_sprite_quad()
+            self.renderer = None
+
         if self.window is not None:
             self.window.close()
             self.window = None
-        self.renderer = None
-        pygame.quit()
+
+        if self._pygame_started:
+            pygame.quit()
+            self._pygame_started = False
+
         Log.info("Motor detenido. Hasta pronto.")
