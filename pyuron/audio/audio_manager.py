@@ -118,6 +118,11 @@ class AudioManager:
         if self._initialized:
             pygame.mixer.music.fadeout(fade_ms) if fade_ms else pygame.mixer.music.stop()
 
+    def stop_all_sfx(self) -> None:
+        """Detiene todos los efectos de sonido (no la música)."""
+        if self._initialized:
+            pygame.mixer.stop()
+
     def pause_music(self) -> None:
         if self._initialized:
             pygame.mixer.music.pause()

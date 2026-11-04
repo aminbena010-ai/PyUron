@@ -17,6 +17,15 @@ class Node:
     def on_exit_tree(self) -> None:
         """Se llama cuando el nodo sale del árbol activo (o al eliminarse del padre)."""
 
+    def get_engine(self):
+        """Devuelve el Engine asociado a la escena, o None si aún no está en el árbol."""
+        node = self
+        while node is not None:
+            if hasattr(node, "engine"):
+                return node.engine
+            node = node.parent
+        return None
+
     def _enter_tree_recursive(self) -> None:
         if self._in_tree:
             return

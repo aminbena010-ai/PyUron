@@ -16,9 +16,14 @@ class Scene(Node):
         super().__init__(name)
         self.physics_world = PhysicsWorld()
         self.background_color: tuple[float, float, float, float] | None = None
+        self.engine = None  # Referencia al motor (inyectada por Engine.set_scene)
+
+    def on_enter_tree(self) -> None:
+        """Se llama cuando la escena se activa. Aquí ya tiene acceso a self.engine."""
+        super().on_enter_tree()
 
     def on_exit_tree(self) -> None:
-        """Limpia el estado físico al salir del árbol."""
+        """Limpia el estado físico y de audio al salir del árbol."""
         super().on_exit_tree()
         self.physics_world.bodies.clear()
 

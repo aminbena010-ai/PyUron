@@ -49,13 +49,18 @@ class Engine:
         self._pending_scene = scene
 
     def _apply_pending_scene(self) -> None:
-        """Aplica el cambio de escena pendiente con ciclo de vida correcto."""
+        """Aplica el cambio de escena pendiente con ciclo de vida e integración correcta."""
         if self._pending_scene is None:
             return
+        # 1. Limpieza de la escena saliente
         if self.scene is not None:
             self.scene._exit_tree_recursive()
             Log.info(f"Escena saliente: {self.scene.name}")
+            self.audio.stop_all_sfx()  # Evitar sonidos huérfanos
+
+        # 2. Activación de la escena entrante
         self.scene = self._pending_scene
+        self.scene.engine = self  # Inyección de contexto para on_enter_tree
         self.scene._enter_tree_recursive()
         Log.ok(f"Escena entrante: {self.scene.name}")
         self._pending_scene = None
