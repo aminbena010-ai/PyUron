@@ -1,4 +1,4 @@
-# PyUron 1.0.1
+# PyUron 1.0.2
 
 **Motor de videojuegos modular, Python-first, 2D y 3D.**
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2] - 2026-11-04
+### Corregido
+- Ciclo de vida del motor resistente a fallos (`Engine.shutdown` protegido por subsistema).
+- `Engine.initialize` envuelto en try/except con rollback seguro.
+- Validación estricta de `fixed_dt` (rechaza `NaN` e `inf`).
+- `_compute_steps` devuelve lista de sub-pasos y aplica `MAX_FIXED_STEPS` como constante de clase.
+- Acumulador de tiempo ya no descarta fracciones innecesarias.
+- `shutdown()` antes de `initialize()` ya no toca `pygame.quit()`.
+- Versión centralizada en `pyuron/core/version.py`.
+
 ## [1.0.1] - 2026-11-04
 ### Corregido
 - Errores de linting (F401) en `pyuron/scene/__init__.py`.
