@@ -1,10 +1,12 @@
 import pygame
 
+from pyuron.audio.audio_manager import AudioManager
 from pyuron.core.config import EngineConfig
 from pyuron.core.logger import Log
 from pyuron.core.timing import Timer, timed
 from pyuron.core.window import Window
 from pyuron.graphics.renderer import Renderer
+from pyuron.input.input_manager import InputManager
 from pyuron.scene.scene import Scene
 
 
@@ -14,6 +16,8 @@ class Engine:
         self.window: Window | None = None
         self.renderer: Renderer | None = None
         self.scene: Scene | None = None
+        self.input = InputManager()
+        self.audio = AudioManager()
         self.is_running = False
         self.delta_time = 0.0
         self._clock = pygame.time.Clock()
@@ -62,6 +66,9 @@ class Engine:
             )
         Log.ok(f"OpenGL {self.renderer.version}")
 
+        with timed("Inicialización audio"):
+            self.audio.init()
+
         Log.time("Arranque total", startup.elapsed_ms)
         Log.divider()
 
@@ -76,13 +83,11 @@ class Engine:
                 if not self.is_running:
                     break
 
-                # 1) Update
                 for fn in self._on_update:
                     fn(self.delta_time)
                 if self.scene is not None:
                     self.scene._process(self.delta_time)
 
-                # 2) Render
                 assert self.renderer is not None and self.window is not None
                 self.renderer.begin_frame()
 
@@ -96,7 +101,6 @@ class Engine:
 
                 self.renderer.end_frame()
                 self.window.swap_buffers()
-
                 self._report_fps()
         except KeyboardInterrupt:
             self.stop()
@@ -104,7 +108,9 @@ class Engine:
             self.shutdown()
 
     def _process_events(self) -> None:
+        self.input.begin_frame()
         for event in pygame.event.get():
+            self.input.process_event(event)
             if event.type == pygame.QUIT:
                 self.stop()
             elif event.type in (pygame.VIDEORESIZE, pygame.WINDOWSIZECHANGED):
@@ -139,6 +145,7 @@ class Engine:
 
     def shutdown(self) -> None:
         self.is_running = False
+        self.audio.shutdown()
         if self.window is not None:
             self.window.close()
             self.window = None

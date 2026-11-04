@@ -21,3 +21,18 @@ class Transform:
         m = m @ matrix.rotate_x(self.rotation.x)
         m = m @ matrix.scale(self.scale.x, self.scale.y, self.scale.z)
         return m
+
+    def to_dict(self) -> dict:
+        return {
+            "position": self.position.to_dict(),
+            "rotation": self.rotation.to_dict(),
+            "scale":    self.scale.to_dict(),
+        }
+
+    def load_dict(self, d: dict) -> None:
+        if "position" in d:
+            self.position = Vector3.from_dict(d["position"])
+        if "rotation" in d:
+            self.rotation = Vector3.from_dict(d["rotation"])
+        if "scale" in d:
+            self.scale = Vector3.from_dict(d["scale"])

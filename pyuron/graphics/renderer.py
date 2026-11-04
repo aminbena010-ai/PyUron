@@ -7,7 +7,7 @@ import numpy as np
 from OpenGL.GL import (
     GL_BLEND, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST,
     GL_LEQUAL, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_VERSION,
-    glBlendFunc, glClear, glClearColor, glDepthFunc, glEnable,
+    glBlendFunc, glClear, glClearColor, glDepthFunc, glDisable, glEnable,
     glGetString, glViewport,
 )
 
@@ -74,6 +74,13 @@ class Renderer:
                         f"Usa ndarray(4,4), tuple(3) o float."
                     )
         mesh.draw()
+
+    def begin_2d_pass(self) -> None:
+        """Desactiva depth test para dibujar sprites en orden de árbol."""
+        glDisable(GL_DEPTH_TEST)
+
+    def end_2d_pass(self) -> None:
+        glEnable(GL_DEPTH_TEST)
 
     def end_frame(self) -> None:
         pass

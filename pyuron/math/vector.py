@@ -81,6 +81,14 @@ class Vector3:
 
     __rmul__ = __mul__
 
+    def __truediv__(self, s: float) -> "Vector3":
+        if s == 0:
+            raise ZeroDivisionError("División por cero en Vector3")
+        return Vector3(self.x / s, self.y / s, self.z / s)
+
+    def __neg__(self) -> "Vector3":
+        return Vector3(-self.x, -self.y, -self.z)
+
     def length(self) -> float:
         return float(np.linalg.norm(self._data))
 
@@ -89,6 +97,15 @@ class Vector3:
         if n == 0.0:
             return Vector3()
         return Vector3(self.x / n, self.y / n, self.z / n)
+
+    def to_dict(self) -> dict:
+        return {"x": self.x, "y": self.y, "z": self.z}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Vector3":
+        return cls(float(d.get("x", 0.0)),
+                   float(d.get("y", 0.0)),
+                   float(d.get("z", 0.0)))
 
     def __repr__(self) -> str:
         return f"Vector3({self.x}, {self.y}, {self.z})"

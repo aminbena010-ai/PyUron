@@ -1,4 +1,4 @@
-"""Nodos renderizables: malla + material + transform (heredan de Node3D)."""
+"""Nodos renderizables: malla + material + transform."""
 from __future__ import annotations
 
 import numpy as np
@@ -15,11 +15,7 @@ class _MeshInstanceBase(Node3D):
         self.mesh = mesh
         self.material = material
 
-    def _local_model(self) -> np.ndarray:
-        return self.transform.to_matrix()
-
     def _world_model(self) -> np.ndarray:
-        """Acumula transforms de todos los Node3D ancestros."""
         m = matrix.identity()
         node = self
         while node is not None:
@@ -28,11 +24,13 @@ class _MeshInstanceBase(Node3D):
             node = node.parent
         return m
 
-    def render(self, renderer, view_projection: np.ndarray) -> None:
+    def render(self, renderer, view_projection: np.ndarray, extra_uniforms: dict) -> None:
         if not self.visible:
             return
-        mvp = view_projection @ self._world_model()
-        self.material.apply(extra_uniforms={"u_mvp": mvp})
+        model = self._world_model()
+        uniforms = {"u_mvp": view_projection @ model, "u_model": model}
+        uniforms.update(extra_uniforms)
+        self.material.apply(extra_uniforms=uniforms)
         self.mesh.draw()
 
 

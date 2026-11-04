@@ -1,4 +1,4 @@
-"""Shader GLSL 330 con compilación, link, caché de uniforms y validación."""
+"""Shader GLSL 330 con compilación, link, caché y arrays de uniforms."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,8 +10,9 @@ from OpenGL.GL import (
     glAttachShader, glCompileShader, glCreateProgram, glCreateShader,
     glDeleteProgram, glDeleteShader, glGetIntegerv, glGetProgramInfoLog,
     glGetProgramiv, glGetShaderInfoLog, glGetShaderiv, glGetUniformLocation,
-    glLinkProgram, glShaderSource, glUniform1f, glUniform1i, glUniform3f,
-    glUniformMatrix4fv, glUseProgram,
+    glLinkProgram, glShaderSource,
+    glUniform1f, glUniform1fv, glUniform1i, glUniform3f, glUniform3fv,
+    glUniform4f, glUniformMatrix4fv, glUseProgram,
 )
 
 
@@ -20,14 +21,11 @@ class Shader:
         self._uniforms: dict[str, int] = {}
         self.program = self._build(vertex_src, fragment_src)
 
-    # ── Carga desde archivos ────────────────────────────────────────
     @classmethod
-    def from_files(cls, vert: str | Path, frag: str | Path) -> "Shader":
-        v = Path(vert).read_text(encoding="utf-8")
-        f = Path(frag).read_text(encoding="utf-8")
-        return cls(v, f)
+    def from_files(cls, vert, frag) -> "Shader":
+        return cls(Path(vert).read_text(encoding="utf-8"),
+                   Path(frag).read_text(encoding="utf-8"))
 
-    # ── Compilación / link ──────────────────────────────────────────
     def _compile(self, src: str, kind: int) -> int:
         sh = glCreateShader(kind)
         glShaderSource(sh, src)
@@ -35,8 +33,7 @@ class Shader:
         if not glGetShaderiv(sh, GL_COMPILE_STATUS):
             log = glGetShaderInfoLog(sh)
             glDeleteShader(sh)
-            kind_name = "vertex" if kind == GL_VERTEX_SHADER else "fragment"
-            raise RuntimeError(f"Fallo al compilar shader {kind_name}:\n{log}")
+            raise RuntimeError(f"Fallo al compilar shader:\n{log}")
         return sh
 
     def _build(self, vertex_src: str, fragment_src: str) -> int:
@@ -52,16 +49,12 @@ class Shader:
         glDeleteShader(vs); glDeleteShader(fs)
         return prog
 
-    # ── Vinculación ─────────────────────────────────────────────────
     def use(self) -> None:
         glUseProgram(self.program)
 
-    def _ensure_bound(self, method_name: str) -> None:
+    def _ensure_bound(self, name: str) -> None:
         if int(glGetIntegerv(GL_CURRENT_PROGRAM)) != self.program:
-            raise RuntimeError(
-                f"{method_name}() llamado sin shader.use() previo. "
-                f"Patrón: shader.use() → shader.set_*() → mesh.draw()"
-            )
+            raise RuntimeError(f"{name}() sin shader.use() previo.")
 
     def _loc(self, name: str) -> int:
         if name not in self._uniforms:
@@ -82,6 +75,12 @@ class Shader:
         self._ensure_bound("set_vec3")
         glUniform3f(loc, float(x), float(y), float(z))
 
+    def set_vec4(self, name: str, x: float, y: float, z: float, w: float) -> None:
+        loc = self._loc(name)
+        if loc < 0: return
+        self._ensure_bound("set_vec4")
+        glUniform4f(loc, float(x), float(y), float(z), float(w))
+
     def set_float(self, name: str, value: float) -> None:
         loc = self._loc(name)
         if loc < 0: return
@@ -93,6 +92,20 @@ class Shader:
         if loc < 0: return
         self._ensure_bound("set_int")
         glUniform1i(loc, int(value))
+
+    def set_vec3_array(self, name: str, values: list[tuple[float, float, float]]) -> None:
+        loc = self._loc(name)
+        if loc < 0: return
+        self._ensure_bound("set_vec3_array")
+        flat = np.asarray(values, dtype=np.float32).flatten()
+        glUniform3fv(loc, len(values), flat)
+
+    def set_float_array(self, name: str, values: list[float]) -> None:
+        loc = self._loc(name)
+        if loc < 0: return
+        self._ensure_bound("set_float_array")
+        flat = np.asarray(values, dtype=np.float32).flatten()
+        glUniform1fv(loc, len(values), flat)
 
     def dispose(self) -> None:
         if self.program:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyuron"
-version = "0.3.0"
+version = "0.9.0"
 description = "A modular Python-first 2D and 3D game engine."
 readme = "README.md"
 requires-python = ">=3.12"

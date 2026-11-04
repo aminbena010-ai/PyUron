@@ -15,7 +15,7 @@ def test_checker_is_periodic():
     # Celdas del mismo color (distancia 2*cell = 16)
     assert (img[0, 0] == img[16, 16]).all()
     # Celdas contiguas (distancia cell = 8) tienen color opuesto
-    assert (img[0, 0] != img[8, 0]).all()
+    assert (img[0, 0] != img[8, 0]).any()  # .any() porque el alpha es igual
 
 
 def test_checker_rejects_invalid_size():

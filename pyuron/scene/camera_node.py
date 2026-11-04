@@ -27,15 +27,19 @@ class _BaseCameraNode(Node3D):
 
 
 class Camera2DNode(_BaseCameraNode):
-    def __init__(self, name: str = "Camera2D") -> None:
+    """Cámara ortográfica. `size_y` = unidades de mundo visibles verticalmente."""
+
+    def __init__(self, name: str = "Camera2DNode") -> None:
         super().__init__(name)
         self.zoom = 1.0
+        self.size_y = 10.0  # mundo visible vertical
 
     def view_projection(self, aspect: float) -> np.ndarray:
-        proj = matrix.ortho(-aspect, aspect, -1.0, 1.0, -1.0, 1.0)
+        half_h = (self.size_y / self.zoom) * 0.5
+        half_w = half_h * aspect
+        proj = matrix.ortho(-half_w, half_w, -half_h, half_h, -1.0, 1.0)
         p = self.world_position()
-        view = (matrix.translate(-p.x, -p.y, -p.z)
-                @ matrix.scale(self.zoom, self.zoom, 1.0))
+        view = matrix.translate(-p.x, -p.y, -p.z)
         return proj @ view
 
 
