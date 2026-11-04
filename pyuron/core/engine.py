@@ -86,19 +86,22 @@ class Engine:
         Log.divider()
 
     # ── Bucle principal ─────────────────────────────────────────────
-    def _compute_steps(self, dt: float) -> int:
-        """Calcula cuántos sub-pasos de física ejecutar en este frame."""
+    def _compute_steps(self, dt: float) -> list[float]:
+        """Calcula la lista de sub-pasos de física a ejecutar en este frame."""
         if self.fixed_dt is None:
-            return 1
+            return [dt]
+            
         self._accumulator += dt
         steps = int(self._accumulator / self.fixed_dt)
         
         if steps >= self.MAX_FIXED_STEPS:
+            # Evitar el "death spiral". Limitamos y tiramos el resto.
             self._accumulator = 0.0
-            return self.MAX_FIXED_STEPS
+            steps = self.MAX_FIXED_STEPS
+        else:
+            self._accumulator -= steps * self.fixed_dt
             
-        self._accumulator -= steps * self.fixed_dt
-        return steps
+        return [self.fixed_dt] * steps
 
     def _update(self, dt: float) -> None:
         for fn in self._on_update:
@@ -132,13 +135,10 @@ class Engine:
                 if not self.is_running:
                     break
 
-                # Fase 3: Fixed Timestep vs Variable Step
-                if self.fixed_dt is not None:
-                    steps = self._compute_steps(self.delta_time)
-                    for _ in range(steps):
-                        self._update(self.fixed_dt)
-                else:
-                    self._update(self.delta_time)
+                # Ejecutar sub-pasos de física según la lista devuelta
+                steps = self._compute_steps(self.delta_time)
+                for step_dt in steps:
+                    self._update(step_dt)
 
                 self._render_frame()
                 self._report_fps()
@@ -196,6 +196,7 @@ class Engine:
         except Exception as e:
             Log.warn(f"Error cerrando audio: {e}")
 
+        window_was_initialized = self.window is not None
         try:
             if self.window is not None:
                 self.window.close()
@@ -205,10 +206,12 @@ class Engine:
 
         self.renderer = None
 
-        try:
-            pygame.quit()
-        except Exception:
-            pass
+        # Solo cerramos Pygame si efectivamente se inicializó
+        if window_was_initialized:
+            try:
+                pygame.quit()
+            except Exception:
+                pass
 
         self._closed = True
         Log.info("Motor detenido. Hasta pronto.")
