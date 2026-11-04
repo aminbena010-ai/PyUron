@@ -17,6 +17,11 @@ class Scene(Node):
         self.physics_world = PhysicsWorld()
         self.background_color: tuple[float, float, float, float] | None = None
 
+    def on_exit_tree(self) -> None:
+        """Limpia el estado físico al salir del árbol."""
+        super().on_exit_tree()
+        self.physics_world.bodies.clear()
+
     def _iter_tree(self):
         stack = [self]
         while stack:

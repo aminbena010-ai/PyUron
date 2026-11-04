@@ -19,6 +19,7 @@ class Engine:
         self.window: Window | None = None
         self.renderer: Renderer | None = None
         self.scene: Scene | None = None
+        self._pending_scene: Scene | None = None
         
         # Subsistemas
         self.input = InputManager()
@@ -44,8 +45,20 @@ class Engine:
 
     # ── API pública ─────────────────────────────────────────────────
     def set_scene(self, scene: Scene) -> None:
-        self.scene = scene
-        Log.ok(f"Escena cargada: {scene.name}")
+        """Encola un cambio de escena. Se aplicará al inicio del siguiente frame."""
+        self._pending_scene = scene
+
+    def _apply_pending_scene(self) -> None:
+        """Aplica el cambio de escena pendiente con ciclo de vida correcto."""
+        if self._pending_scene is None:
+            return
+        if self.scene is not None:
+            self.scene._exit_tree_recursive()
+            Log.info(f"Escena saliente: {self.scene.name}")
+        self.scene = self._pending_scene
+        self.scene._enter_tree_recursive()
+        Log.ok(f"Escena entrante: {self.scene.name}")
+        self._pending_scene = None
 
     def on_update(self, fn) -> None: self._on_update.append(fn)
     def on_render(self, fn) -> None: self._on_render.append(fn)
@@ -122,9 +135,11 @@ class Engine:
 
     def run(self) -> None:
         self.initialize()
+        self._apply_pending_scene()
         self.is_running = True
         try:
             while self.is_running:
+                self._apply_pending_scene()
                 self.delta_time = self._clock.tick() / 1000.0
                 self._process_events()
                 if not self.is_running:
@@ -132,6 +147,7 @@ class Engine:
                 steps = self._compute_steps(self.delta_time)
                 for step_dt in steps:
                     self._update(step_dt)
+                self._apply_pending_scene()
                 self._render_frame()
                 self._report_fps()
         except KeyboardInterrupt:
