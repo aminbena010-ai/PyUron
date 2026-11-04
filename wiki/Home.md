@@ -338,7 +338,7 @@ Ideas de roadmap:
 5. Haz commit con [Conventional Commits](https://www.conventionalcommits.org/es/).
 6. Abre un pull request describiendo qué resuelve y cómo se probó.
 
-Consulta [CONTRIBUTING.md](https://github.com/aminbena010-ai/PyUron/blob/main/CONTRIBUTING.md).
+Consulta [CONTRIBUTING.md](https://github.com/aminbena010-ai/PyUron/blob/master/CONTRIBUTING.md).
 
 ---
 
@@ -346,13 +346,13 @@ Consulta [CONTRIBUTING.md](https://github.com/aminbena010-ai/PyUron/blob/main/CO
 
 - [Repositorio](https://github.com/aminbena010-ai/PyUron)
 - [Documentación web](https://aminbena010-ai.github.io/PyUron/)
-- [README](https://github.com/aminbena010-ai/PyUron/blob/main/README.md)
-- [Guía de contribución](https://github.com/aminbena010-ai/PyUron/blob/main/CONTRIBUTING.md)
-- [Changelog](https://github.com/aminbena010-ai/PyUron/blob/main/CHANGELOG.md)
+- [README](https://github.com/aminbena010-ai/PyUron/blob/master/README.md)
+- [Guía de contribución](https://github.com/aminbena010-ai/PyUron/blob/master/CONTRIBUTING.md)
+- [Changelog](https://github.com/aminbena010-ai/PyUron/blob/master/CHANGELOG.md)
 - [Issues](https://github.com/aminbena010-ai/PyUron/issues)
 
 ---
 
 ## Licencia
 
-MIT. Consulta [LICENSE](https://github.com/aminbena010-ai/PyUron/blob/main/LICENSE).
+MIT. Consulta [LICENSE](https://github.com/aminbena010-ai/PyUron/blob/master/LICENSE).
