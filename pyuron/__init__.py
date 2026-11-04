@@ -30,7 +30,7 @@ from pyuron.scene import (
 )
 from pyuron.scene.label_node import render_text_surface, surface_to_array
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = [
     "Engine", "EngineConfig", "Log", "Timer", "timed",

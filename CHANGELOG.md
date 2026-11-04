@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-11-04
+### Corregido
+- Errores de linting (F401) en `pyuron/scene/__init__.py`.
+- Exportación pública del enumerador `Anchor` añadida a `__all__`.
+- Bump de versión a `1.0.1` en `pyproject.toml`, `pyuron/__init__.py` y `README.md`.
+
 Todos los cambios importantes de PyUron se documentan en este archivo.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el

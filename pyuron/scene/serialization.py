@@ -7,7 +7,7 @@ from pathlib import Path
 
 # ── Registro de tipos de nodo ────────────────────────────────────
 _REGISTRY: dict[str, type] = {}
-_defaults_registered = False
+_defaults_registered: bool = False
 
 
 def register_node_type(cls: type) -> type:
@@ -17,28 +17,28 @@ def register_node_type(cls: type) -> type:
 
 
 def ensure_default_node_types() -> None:
-    """Registra los tipos integrados de forma perezosa.
+    """Registra explícitamente todos los tipos de nodo del motor.
 
-    Evita ejecutar código en el import de `pyuron.scene` y rompe el ciclo
-    `scene.scene ↔ scene.serialization`. No sobrescribe tipos ya registrados
-    por el usuario con el mismo nombre.
+    No se llama en el import: sólo cuando el usuario pide serializar
+    o deserializar una escena.
     """
     global _defaults_registered
     if _defaults_registered:
         return
 
-    from pyuron.scene.animated_sprite2d import AnimatedSprite2D
-    from pyuron.scene.camera_node import Camera2DNode, Camera3DNode
-    from pyuron.scene.fps_camera import FPSCameraNode
-    from pyuron.scene.label_node import LabelNode
-    from pyuron.scene.light_node import DirectionalLightNode, PointLightNode
-    from pyuron.scene.mesh_instance import MeshInstance2D, MeshInstance3D
+    # Imports tardíos para evitar ciclos al hacer `import pyuron.scene`.
     from pyuron.scene.node import Node
     from pyuron.scene.node2d import Node2D
     from pyuron.scene.node3d import Node3D
-    from pyuron.scene.physics_body import PhysicsBody3D, SphereBody3D
     from pyuron.scene.scene import Scene
+    from pyuron.scene.mesh_instance import MeshInstance2D, MeshInstance3D
+    from pyuron.scene.camera_node import Camera2DNode, Camera3DNode
+    from pyuron.scene.fps_camera import FPSCameraNode
+    from pyuron.scene.light_node import DirectionalLightNode, PointLightNode
+    from pyuron.scene.physics_body import PhysicsBody3D, SphereBody3D
     from pyuron.scene.sprite2d import Sprite2D
+    from pyuron.scene.animated_sprite2d import AnimatedSprite2D
+    from pyuron.scene.label_node import LabelNode
 
     for cls in (
         Node, Node2D, Node3D, Scene,
@@ -48,7 +48,8 @@ def ensure_default_node_types() -> None:
         PhysicsBody3D, SphereBody3D,
         Sprite2D, AnimatedSprite2D, LabelNode,
     ):
-        _REGISTRY.setdefault(cls.__name__, cls)
+        register_node_type(cls)
+
     _defaults_registered = True
 
 
@@ -71,7 +72,6 @@ def _node_to_dict(node) -> dict:
     if hasattr(node, "transform"):
         d["transform"] = node.transform.to_dict()
 
-    # Luces
     if isinstance(node, DirectionalLightNode):
         d["color"] = node.color.to_dict()
         d["intensity"] = node.intensity
@@ -80,7 +80,6 @@ def _node_to_dict(node) -> dict:
         d["intensity"] = node.intensity
         d["attenuation"] = list(node.attenuation)
 
-    # Física
     if isinstance(node, PhysicsBody3D):
         if isinstance(node.shape, SphereShape):
             d["shape"] = {"type": "sphere", "radius": node.shape.radius}
@@ -93,7 +92,6 @@ def _node_to_dict(node) -> dict:
         d["restitution"] = node.restitution
         d["linear_damping"] = node.linear_damping
 
-    # Sprites
     if isinstance(node, Sprite2D):
         d["size"] = list(node.size) if node.size else None
         d["ppu"] = node.ppu
@@ -117,7 +115,6 @@ def _node_to_dict(node) -> dict:
 
 def _dict_to_node(d: dict, scene_context: dict):
     """Crea el nodo correspondiente. Requiere que el tipo esté registrado."""
-    ensure_default_node_types()
     from pyuron.math import Vector3
     from pyuron.scene.physics_body import PhysicsBody3D
     from pyuron.physics.shapes import BoxShape, SphereShape
@@ -134,9 +131,7 @@ def _dict_to_node(d: dict, scene_context: dict):
             f"Registrados: {sorted(_REGISTRY.keys())}"
         )
 
-    # Nodos que requieren argumentos especiales
-    if type_name == "Sprite2D" or type_name == "AnimatedSprite2D" or type_name == "LabelNode":
-        # Usan un shader/textura compartida del contexto
+    if type_name in ("Sprite2D", "AnimatedSprite2D", "LabelNode"):
         shader = scene_context.get("sprite_shader")
         if shader is None:
             raise ValueError(f"{type_name} requiere 'sprite_shader' en el contexto.")
@@ -167,7 +162,6 @@ def _dict_to_node(d: dict, scene_context: dict):
                 raise ValueError(f"Textura '{tex_key}' no encontrada en contexto.")
             node = Sprite2D(tex, shader, name=d["name"])
 
-        # Sprite props
         if d.get("size") is not None:
             node.size = tuple(d["size"])
         node.ppu = d.get("ppu", 64.0)
@@ -186,14 +180,12 @@ def _dict_to_node(d: dict, scene_context: dict):
     else:
         node = cls(d.get("name", type_name))
 
-    # Comunes
     node.name = d.get("name", node.name)
     node.visible = d.get("visible", True)
 
     if "transform" in d and hasattr(node, "transform"):
         node.transform.load_dict(d["transform"])
 
-    # Luces
     if isinstance(node, (DirectionalLightNode, PointLightNode)):
         if "color" in d:
             node.color = Vector3.from_dict(d["color"])
@@ -201,7 +193,6 @@ def _dict_to_node(d: dict, scene_context: dict):
         if isinstance(node, PointLightNode) and "attenuation" in d:
             node.attenuation = tuple(d["attenuation"])
 
-    # Física
     if isinstance(node, PhysicsBody3D):
         if "shape" in d:
             sh = d["shape"]
@@ -217,7 +208,6 @@ def _dict_to_node(d: dict, scene_context: dict):
         node.restitution = d.get("restitution", 0.05)
         node.linear_damping = d.get("linear_damping", 0.85)
 
-    # Hijos (recursivo)
     for child_dict in d.get("children", []):
         child = _dict_to_node(child_dict, scene_context)
         node.add_child(child)
@@ -227,36 +217,26 @@ def _dict_to_node(d: dict, scene_context: dict):
 
 # ── API pública ─────────────────────────────────────────────────
 def scene_to_dict(scene) -> dict:
-    from pyuron import __version__
-
-    return {
-        "version": __version__,
-        "scene": _node_to_dict(scene),
-    }
+    return {"version": "1.0.1", "scene": _node_to_dict(scene)}
 
 
 def save_scene(scene, path: str | Path) -> None:
-    ensure_default_node_types()
     data = scene_to_dict(scene)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def load_scene(path: str | Path, scene_context: dict):
-    """Carga una escena. `scene_context` debe tener:
-       - "sprite_shader": Shader
-       - "textures": dict[str, Texture2D] con claves f"tex_{node_name}"
-    """
+    """Carga una escena. Registra los tipos de nodo de forma perezosa."""
+    from pyuron.scene.scene import Scene
     ensure_default_node_types()
-    scene_cls = _REGISTRY["Scene"]
 
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     scene_dict = data["scene"]
     root = _dict_to_node(scene_dict, scene_context)
 
-    # Forzar que el root sea Scene
-    if not isinstance(root, scene_cls):
-        scene = scene_cls(scene_dict.get("name", "Scene"))
+    if not isinstance(root, Scene):
+        scene = Scene(scene_dict.get("name", "Scene"))
         for child in root.children[:]:
             scene.add_child(child)
         return scene
