@@ -1,8 +1,9 @@
-"""AssetManager: cachea shaders, texturas y mallas por ruta."""
+"""AssetManager: cachea y gestiona el ciclo de vida de shaders, texturas y mallas."""
 from __future__ import annotations
 
 from pathlib import Path
 
+from pyuron.core.logger import Log
 from pyuron.graphics.mesh import Mesh
 from pyuron.graphics.shader import Shader
 from pyuron.graphics.texture import Texture2D
@@ -11,9 +12,9 @@ from pyuron.resources.obj_loader import load_obj
 
 class AssetManager:
     def __init__(self) -> None:
-        self._shaders:  dict[tuple[str, str], Shader]    = {}
-        self._textures: dict[str, Texture2D]             = {}
-        self._meshes:   dict[str, Mesh]                  = {}
+        self._shaders:  dict[tuple[str, str], Shader] = {}
+        self._textures: dict[str, Texture2D]           = {}
+        self._meshes:   dict[str, Mesh]                = {}
 
     # ── Shaders ─────────────────────────────────────────────────────
     def get_shader(self, vert: str | Path, frag: str | Path) -> Shader:
@@ -42,10 +43,26 @@ class AssetManager:
             self._meshes[key] = mesh
         return self._meshes[key]
 
+    # ── Liberación robusta ──────────────────────────────────────────
     def dispose_all(self) -> None:
-        for sh in self._shaders.values():  sh.dispose()
-        for tx in self._textures.values(): tx.dispose()
-        for ms in self._meshes.values():   ms.dispose()
+        """Libera todos los recursos GPU sin detenerse si alguno falla."""
+        for key, sh in list(self._shaders.items()):
+            try:
+                sh.dispose()
+            except Exception as e:
+                Log.warn(f"Error liberando shader {key}: {e}")
         self._shaders.clear()
+
+        for key, tx in list(self._textures.items()):
+            try:
+                tx.dispose()
+            except Exception as e:
+                Log.warn(f"Error liberando textura {key}: {e}")
         self._textures.clear()
+
+        for key, ms in list(self._meshes.items()):
+            try:
+                ms.dispose()
+            except Exception as e:
+                Log.warn(f"Error liberando malla {key}: {e}")
         self._meshes.clear()

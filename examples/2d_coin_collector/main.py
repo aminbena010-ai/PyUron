@@ -8,7 +8,7 @@ import numpy as np
 import pygame
 
 from pyuron import (
-    AnimatedSprite2D, AssetManager, Camera2DNode, Engine, EngineConfig, Log,
+    AnimatedSprite2D, Camera2DNode, Engine, EngineConfig, Log,
     Anchor, LabelNode, Scene, Texture2D, Vector3, __version__, make_tone,
     install_exception_hook, show_banner,
 )
@@ -105,7 +105,7 @@ def main() -> None:
         audio.register_sound("save", make_tone(660, 0.08, volume=0.3))
         audio.register_sound("load", make_tone(440, 0.10, volume=0.3))
 
-    assets = AssetManager()
+    assets = engine.assets
     sprite_shader = assets.get_shader("assets/shaders/sprite.vert",
                                        "assets/shaders/sprite.frag")
 

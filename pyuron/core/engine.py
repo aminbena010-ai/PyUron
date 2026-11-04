@@ -7,6 +7,7 @@ from pyuron.core.timing import Timer, timed
 from pyuron.core.window import Window
 from pyuron.graphics.renderer import Renderer
 from pyuron.input.input_manager import InputManager
+from pyuron.resources.assets import AssetManager
 from pyuron.scene.scene import Scene
 
 
@@ -18,8 +19,12 @@ class Engine:
         self.window: Window | None = None
         self.renderer: Renderer | None = None
         self.scene: Scene | None = None
+        
+        # Subsistemas
         self.input = InputManager()
         self.audio = AudioManager()
+        self.assets = AssetManager()  # ← Ahora el motor gestiona los recursos
+        
         self.is_running = False
         self._closed = False
         self.delta_time = 0.0
@@ -34,7 +39,6 @@ class Engine:
         self._fps_frames   = 0
         self._draw_ms_accum = 0.0
 
-        # Fixed Timestep
         self.fixed_dt = self.config.fixed_dt
         self._accumulator = 0.0
 
@@ -86,22 +90,16 @@ class Engine:
         Log.time("Arranque total", startup.elapsed_ms)
         Log.divider()
 
-    # ── Bucle principal ─────────────────────────────────────────────
     def _compute_steps(self, dt: float) -> list[float]:
-        """Calcula la lista de sub-pasos de física a ejecutar en este frame."""
         if self.fixed_dt is None:
             return [dt]
-            
         self._accumulator += dt
         steps = int(self._accumulator / self.fixed_dt)
-        
         if steps >= self.MAX_FIXED_STEPS:
-            # Evitar el "death spiral". Limitamos y tiramos el resto.
             self._accumulator = 0.0
             steps = self.MAX_FIXED_STEPS
         else:
             self._accumulator -= steps * self.fixed_dt
-            
         return [self.fixed_dt] * steps
 
     def _update(self, dt: float) -> None:
@@ -113,34 +111,27 @@ class Engine:
     def _render_frame(self) -> None:
         assert self.renderer is not None and self.window is not None
         self.renderer.begin_frame()
-
         for fn in self._on_render:
             fn()
-
         if self.scene is not None:
             t = Timer()
             self.scene.render(self.renderer)
             self._draw_ms_accum += t.elapsed_ms
-
         self.renderer.end_frame()
         self.window.swap_buffers()
 
     def run(self) -> None:
         self.initialize()
         self.is_running = True
-
         try:
             while self.is_running:
                 self.delta_time = self._clock.tick() / 1000.0
                 self._process_events()
                 if not self.is_running:
                     break
-
-                # Ejecutar sub-pasos de física según la lista devuelta
                 steps = self._compute_steps(self.delta_time)
                 for step_dt in steps:
                     self._update(step_dt)
-
                 self._render_frame()
                 self._report_fps()
         except KeyboardInterrupt:
@@ -177,9 +168,7 @@ class Engine:
         fps = self._fps_frames / self._fps_elapsed if self._fps_elapsed > 0 else 0.0
         frame_ms = (self._fps_elapsed / self._fps_frames) * 1000.0 if self._fps_frames else 0.0
         draw_ms = self._draw_ms_accum / self._fps_frames if self._fps_frames else 0.0
-        Log.metrics(
-            f"FPS {fps:5.1f}  ·  frame {frame_ms:5.2f} ms  ·  draw {draw_ms:5.2f} ms"
-        )
+        Log.metrics(f"FPS {fps:5.1f}  ·  frame {frame_ms:5.2f} ms  ·  draw {draw_ms:5.2f} ms")
         self._fps_elapsed = 0.0
         self._fps_frames = 0
         self._draw_ms_accum = 0.0
@@ -197,6 +186,12 @@ class Engine:
         except Exception as e:
             Log.warn(f"Error cerrando audio: {e}")
 
+        # Liberar recursos GPU (VAO, VBO, Texturas, Shaders)
+        try:
+            self.assets.dispose_all()
+        except Exception as e:
+            Log.warn(f"Error liberando recursos GPU: {e}")
+
         window_was_initialized = self.window is not None
         try:
             if self.window is not None:
@@ -207,7 +202,6 @@ class Engine:
 
         self.renderer = None
 
-        # Solo cerramos Pygame si efectivamente se inicializó
         if window_was_initialized:
             try:
                 pygame.quit()

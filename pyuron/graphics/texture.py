@@ -70,6 +70,6 @@ class Texture2D:
         glBindTexture(GL_TEXTURE_2D, self.texture)
 
     def dispose(self) -> None:
-        if self.texture:
+        if getattr(self, "texture", 0):
             glDeleteTextures(1, [self.texture])
             self.texture = 0

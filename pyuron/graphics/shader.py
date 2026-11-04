@@ -108,6 +108,6 @@ class Shader:
         glUniform1fv(loc, len(values), flat)
 
     def dispose(self) -> None:
-        if self.program:
+        if getattr(self, "program", 0):
             glDeleteProgram(self.program)
             self.program = 0

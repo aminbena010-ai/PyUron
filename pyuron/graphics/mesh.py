@@ -58,6 +58,12 @@ class Mesh:
         glBindVertexArray(0)
 
     def dispose(self) -> None:
-        glDeleteBuffers(1, [self._vbo])
-        glDeleteBuffers(1, [self._ebo])
-        glDeleteVertexArrays(1, [self._vao])
+        if getattr(self, "_vbo", 0):
+            glDeleteBuffers(1, [self._vbo])
+            self._vbo = 0
+        if getattr(self, "_ebo", 0):
+            glDeleteBuffers(1, [self._ebo])
+            self._ebo = 0
+        if getattr(self, "_vao", 0):
+            glDeleteVertexArrays(1, [self._vao])
+            self._vao = 0
